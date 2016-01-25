@@ -37,6 +37,7 @@ public class App {
 
 	public static void main(String[] args) throws Exception {
 		init();
+		// testStsS3();
 		testStsEc2();
 	}
 
@@ -63,12 +64,8 @@ public class App {
 		ec2.setEndpoint("ec2.ap-southeast-2.amazonaws.com");
 
 		// CREATE EC2 INSTANCES
-		RunInstancesRequest runInstancesRequest = new RunInstancesRequest()
-		    .withInstanceType("m3.medium")
-		    .withImageId("ami-0487de67")
-		    .withMinCount(1)
-		    .withMaxCount(1)
-		;
+		RunInstancesRequest runInstancesRequest = new RunInstancesRequest().withInstanceType("m3.medium")
+				.withImageId("ami-0487de67").withMinCount(1).withMaxCount(1).withInstanceInitiatedShutdownBehavior("terminate");
 
 		RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
 
@@ -76,13 +73,14 @@ public class App {
 		List<Instance> instances = runInstances.getReservation().getInstances();
 		int idx = 1;
 		for (Instance instance : instances) {
-		  CreateTagsRequest createTagsRequest = new CreateTagsRequest();
-		  createTagsRequest.withResources(instance.getInstanceId()) //
-		      .withTags(new Tag("Name", "travel-ecommerce-" + idx));
-		  ec2.createTags(createTagsRequest);
+			CreateTagsRequest createTagsRequest = new CreateTagsRequest();
+			createTagsRequest.withResources(instance.getInstanceId()) //
+					.withTags(new Tag("Name", "ANVGL Job: " + idx));
+			ec2.createTags(createTagsRequest);
 
-		  idx++;
-		}	}
+			idx++;
+		}
+	}
 
 	public static void testStsS3() throws Exception {
 		// init();
