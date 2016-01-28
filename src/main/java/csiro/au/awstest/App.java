@@ -18,16 +18,32 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.amazonaws.util.Base64;
 import com.amazonaws.util.StringInputStream;
 
 /**
- * Hello world!
- *
+ * AWS Cross Account Access test
+ * 
+ * This code is based on the article:
+ * https://blogs.aws.amazon.com/security/post/TxC24FI9IDXTY1/Delegating-API-Access-to-AWS-Services-Using-IAM-Roles
  */
 public class App {
-	private static final String ROLE_ARN = "arn:aws:iam::696640869989:role/xacc_test";
-	private static final String BUCKER_NAME = "frefgrefesf";
+	
+	//
+	// Change the below to match your case.
+	//
+	private static final String CLIENT_ACCOUNT_NUMBER= "696640869989"; // The AWS account number of the client account 
+	private static final String CLIENT_ROLE = "xacc_test"; // Must match the role set up in the client account
+
+	private static final String BUCKER_NAME = "frefgrefesf"; // Must match value in client_policy.json
+	private static final String AMI_NAME = "ami-0487de67"; // Must match value in client_policy.json
+
+	private static final String CLIENT_SECRET = "1234"; // Must match value in client_role_trust_policy.json
+	
+	//
+	// Probably don't need to change anything below
+	//
+	
+	private static final String ROLE_ARN = "arn:aws:iam::"+CLIENT_ACCOUNT_NUMBER+":role/"+CLIENT_ROLE;
 
 	private static AWSCredentials AwsCredentials;
 
@@ -49,7 +65,7 @@ public class App {
 		AWSSecurityTokenServiceClient stsClient = new AWSSecurityTokenServiceClient(AwsCredentials);
 
 		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(ROLE_ARN).withDurationSeconds(3600)
-				.withExternalId("1234").withRoleSessionName("demo");
+				.withExternalId(CLIENT_SECRET).withRoleSessionName("demo");
 
 		AssumeRoleResult assumeResult = stsClient.assumeRole(assumeRequest);
 
@@ -65,7 +81,7 @@ public class App {
 
 		// CREATE EC2 INSTANCES
 		RunInstancesRequest runInstancesRequest = new RunInstancesRequest().withInstanceType("m3.medium")
-				.withImageId("ami-0487de67").withMinCount(1).withMaxCount(1).withInstanceInitiatedShutdownBehavior("terminate");
+				.withImageId(AMI_NAME).withMinCount(1).withMaxCount(1).withInstanceInitiatedShutdownBehavior("terminate");
 
 		RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
 
@@ -75,7 +91,7 @@ public class App {
 		for (Instance instance : instances) {
 			CreateTagsRequest createTagsRequest = new CreateTagsRequest();
 			createTagsRequest.withResources(instance.getInstanceId()) //
-					.withTags(new Tag("Name", "ANVGL Job: " + idx));
+					.withTags(new Tag("Name", "XACCESS test- : " + idx));
 			ec2.createTags(createTagsRequest);
 
 			idx++;
@@ -83,8 +99,6 @@ public class App {
 	}
 
 	public static void testStsS3() throws Exception {
-		// init();
-
 		// Step 1. Use Joe.s long-term credentials to call the
 		// AWS Security Token Service (STS) AssumeRole API, specifying
 		// the ARN for the role DynamoDB-RO-role in research@example.com.
@@ -92,7 +106,7 @@ public class App {
 		AWSSecurityTokenServiceClient stsClient = new AWSSecurityTokenServiceClient(AwsCredentials);
 
 		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(ROLE_ARN).withDurationSeconds(3600)
-				.withExternalId("1234").withRoleSessionName("demo");
+				.withExternalId(CLIENT_SECRET).withRoleSessionName("demo");
 
 		AssumeRoleResult assumeResult = stsClient.assumeRole(assumeRequest);
 
