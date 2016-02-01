@@ -8,6 +8,7 @@ import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
+import com.amazonaws.services.ec2.model.IamInstanceProfileSpecification;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
@@ -15,6 +16,7 @@ import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
@@ -31,19 +33,19 @@ public class App {
 	//
 	// Change the below to match your case.
 	//
-	private static final String CLIENT_ACCOUNT_NUMBER= "696640869989"; // The AWS account number of the client account 
-	private static final String CLIENT_ROLE = "xacc_test"; // Must match the role set up in the client account
 
-	private static final String BUCKER_NAME = "frefgrefesf"; // Must match value in client_policy.json
-	private static final String AMI_NAME = "ami-0487de67"; // Must match value in client_policy.json
+	private static final String STS_ROLE_ARN = "arn:aws:iam::696640869989:role/test3-AnvglStsRole-AUWI5JO70VAP";
+	private static final String S3_PROFILE_ARN = "arn:aws:iam::696640869989:instance-profile/test3-AnvglS3InstanceProfile-5KUI9B284NEY";
 
-	private static final String CLIENT_SECRET = "1234"; // Must match value in client_role_trust_policy.json
+	private static final String BUCKER_NAME = "anvgl-12774625"; // Must match value in policy
+	private static final String AMI_NAME = "ami-0487de67"; // Must match value in policy
+
+	private static final String CLIENT_SECRET = "1234"; // Must match value in policy
+	private static final String AWS_EC2_ENDPOINT = "ec2.ap-southeast-2.amazonaws.com";
 	
 	//
 	// Probably don't need to change anything below
 	//
-	
-	private static final String ROLE_ARN = "arn:aws:iam::"+CLIENT_ACCOUNT_NUMBER+":role/"+CLIENT_ROLE;
 
 	private static AWSCredentials AwsCredentials;
 
@@ -53,7 +55,7 @@ public class App {
 
 	public static void main(String[] args) throws Exception {
 		init();
-		// testStsS3();
+		testStsS3();
 		testStsEc2();
 	}
 
@@ -64,7 +66,7 @@ public class App {
 
 		AWSSecurityTokenServiceClient stsClient = new AWSSecurityTokenServiceClient(AwsCredentials);
 
-		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(ROLE_ARN).withDurationSeconds(3600)
+		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(STS_ROLE_ARN).withDurationSeconds(3600)
 				.withExternalId(CLIENT_SECRET).withRoleSessionName("demo");
 
 		AssumeRoleResult assumeResult = stsClient.assumeRole(assumeRequest);
@@ -77,10 +79,11 @@ public class App {
 				assumeResult.getCredentials().getSessionToken());
 
 		AmazonEC2 ec2 = new AmazonEC2Client(temporaryCredentials);
-		ec2.setEndpoint("ec2.ap-southeast-2.amazonaws.com");
+		ec2.setEndpoint(AWS_EC2_ENDPOINT);
 
+		IamInstanceProfileSpecification iamInstanceProfile = new IamInstanceProfileSpecification().withArn(S3_PROFILE_ARN);
 		// CREATE EC2 INSTANCES
-		RunInstancesRequest runInstancesRequest = new RunInstancesRequest().withInstanceType("m3.medium")
+		RunInstancesRequest runInstancesRequest = new RunInstancesRequest().withInstanceType("m3.medium").withIamInstanceProfile(iamInstanceProfile)
 				.withImageId(AMI_NAME).withMinCount(1).withMaxCount(1).withInstanceInitiatedShutdownBehavior("terminate");
 
 		RunInstancesResult runInstances = ec2.runInstances(runInstancesRequest);
@@ -105,7 +108,7 @@ public class App {
 
 		AWSSecurityTokenServiceClient stsClient = new AWSSecurityTokenServiceClient(AwsCredentials);
 
-		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(ROLE_ARN).withDurationSeconds(3600)
+		AssumeRoleRequest assumeRequest = new AssumeRoleRequest().withRoleArn(STS_ROLE_ARN).withDurationSeconds(3600)
 				.withExternalId(CLIENT_SECRET).withRoleSessionName("demo");
 
 		AssumeRoleResult assumeResult = stsClient.assumeRole(assumeRequest);
@@ -122,6 +125,7 @@ public class App {
 		// temporary security credentials from the DynamoDB-ReadOnly-role
 		// that were returned in the previous step.
 		AmazonS3 s3client = new AmazonS3Client(temporaryCredentials);
+		s3client.createBucket(BUCKER_NAME);
 		s3client.putObject(BUCKER_NAME, "test2.txt", new StringInputStream("This is a test 2"), new ObjectMetadata());
 	}
 }
