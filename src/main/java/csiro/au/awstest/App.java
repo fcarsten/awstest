@@ -16,7 +16,6 @@ import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
@@ -34,8 +33,8 @@ public class App {
 	// Change the below to match your case.
 	//
 
-	private static final String STS_ROLE_ARN = "arn:aws:iam::696640869989:role/test3-AnvglStsRole-AUWI5JO70VAP";
-	private static final String S3_PROFILE_ARN = "arn:aws:iam::696640869989:instance-profile/test3-AnvglS3InstanceProfile-5KUI9B284NEY";
+	private static final String STS_ROLE_ARN = "arn:aws:iam::696640869989:role/vbkd-dsadss-AnvglStsRole-1QZG62NWIOK2";
+	private static final String S3_PROFILE_ARN = "arn:aws:iam::696640869989:instance-profile/vbkd-dsadss-AnvglS3InstanceProfile-17Z06U2BEOANC";
 
 	private static final String BUCKER_NAME = "anvgl-12774625"; // Must match value in policy
 	private static final String AMI_NAME = "ami-0487de67"; // Must match value in policy
