@@ -21,6 +21,11 @@
 			<version>3.8.1</version>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.apache.jclouds</groupId>
+            <artifactId>jclouds-all</artifactId>
+            <version>1.8.1</version>
+        </dependency>
 
 		<dependency>
 			<groupId>com.amazonaws</groupId>

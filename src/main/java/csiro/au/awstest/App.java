@@ -1,6 +1,16 @@
 package csiro.au.awstest;
 
 import java.util.List;
+import java.util.Properties;
+
+import org.jclouds.ContextBuilder;
+import org.jclouds.blobstore.BlobStore;
+import org.jclouds.blobstore.BlobStoreContext;
+import org.jclouds.blobstore.domain.Blob;
+import org.jclouds.domain.Credentials;
+import org.jclouds.sts.STSApi;
+import org.jclouds.sts.domain.UserAndSessionCredentials;
+import org.jclouds.sts.options.AssumeRoleOptions;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
@@ -20,6 +30,7 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
 import com.amazonaws.util.StringInputStream;
+import com.google.common.base.Supplier;
 
 /**
  * AWS Cross Account Access test
@@ -36,7 +47,8 @@ public class App {
 	private static final String STS_ROLE_ARN = "arn:aws:iam::696640869989:role/vbkd-dsadss-AnvglStsRole-1QZG62NWIOK2";
 	private static final String S3_PROFILE_ARN = "arn:aws:iam::696640869989:instance-profile/vbkd-dsadss-AnvglS3InstanceProfile-17Z06U2BEOANC";
 
-	private static final String BUCKER_NAME = "anvgl-12774625"; // Must match value in policy
+	//private static final String BUCKER_NAME = "job-MORPH-BT-carsten_friedrich_gmail_com-0000000024/vl-download.sh";
+	private static final String BUCKER_NAME = "anvgl-csiro"; // Must match value in policy
 	private static final String AMI_NAME = "ami-0487de67"; // Must match value in policy
 
 	private static final String CLIENT_SECRET = "1234"; // Must match value in policy
@@ -54,8 +66,9 @@ public class App {
 
 	public static void main(String[] args) throws Exception {
 		init();
-		testStsS3();
-		testStsEc2();
+		testStsS3JClouds();
+//		testStsS3();
+//		testStsEc2();
 	}
 
 	public static void testStsEc2() throws Exception {
@@ -100,6 +113,52 @@ public class App {
 		}
 	}
 
+	public static void testStsS3JClouds() throws Exception {
+        String regionName = "ap-southeast-2";
+        boolean relaxHostName = false;
+        boolean stripExpectHeader = true;
+		String endpoint=null;
+
+        Properties properties = new Properties();
+		properties.setProperty("jclouds.relax-hostname", relaxHostName ? "true" : "false");
+		properties.setProperty("jclouds.strip-expect-header", stripExpectHeader ? "true" : "false");
+
+		if (regionName  != null) {
+            properties.setProperty("jclouds.region", regionName);
+        }
+		
+		STSApi api = ContextBuilder.newBuilder("sts")
+				.credentials(AwsCredentials.getAWSAccessKeyId(), AwsCredentials.getAWSSecretKey())
+				.buildApi(STSApi.class);
+
+		AssumeRoleOptions assumeRoleOptions = new AssumeRoleOptions().durationSeconds(3600).externalId(CLIENT_SECRET);
+		final UserAndSessionCredentials credentials = api.assumeRole(STS_ROLE_ARN, "demo", assumeRoleOptions);
+
+		Supplier<Credentials> credentialsSupplier = new Supplier<Credentials>() {
+		    @Override
+		    public Credentials get() {
+		        return credentials.getCredentials();
+		    }
+		};
+		
+        ContextBuilder builder2 = ContextBuilder.newBuilder("aws-s3").overrides(properties).credentialsSupplier(credentialsSupplier);
+        
+		if (endpoint != null) {
+			builder2.endpoint(endpoint);
+		}
+
+		BlobStoreContext context =  builder2.buildView(BlobStoreContext.class);
+
+        BlobStore bs = context.getBlobStore();
+
+        Blob newBlob = bs.blobBuilder("job-MORPH-BT-carsten_friedrich_gmail_com-0000000024/vl-download.sh")
+                .payload("This is a test for jclouds blob".getBytes("Utf-8"))
+                .build();
+
+        bs.putBlob(BUCKER_NAME, newBlob);
+
+	}
+	
 	public static void testStsS3() throws Exception {
 		// Step 1. Use Joe.s long-term credentials to call the
 		// AWS Security Token Service (STS) AssumeRole API, specifying
